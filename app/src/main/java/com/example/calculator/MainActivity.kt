@@ -48,7 +48,7 @@ fun CalculatorScreen() {
     var operator by remember { mutableStateOf<String?>(null) }
     var isNewNumber by remember { mutableStateOf(true) }
 
-    // Cores do iPhone
+    // iPhone colors
     val orange = Color(0xFFFF9F0A)
     val darkGray = Color(0xFF333333)
     val lightGray = Color(0xFFA5A5A5)
@@ -79,7 +79,7 @@ fun CalculatorScreen() {
             .background(Color.Black)
             .padding(bottom = 16.dp)
     ) {
-        // Display com Histórico
+        // Display area with history
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -88,15 +88,16 @@ fun CalculatorScreen() {
             verticalArrangement = Arrangement.Bottom,
             horizontalAlignment = Alignment.End
         ) {
-            // Histórico (Ex: 1+2+4)
+            // History (Ex: 1+2+4+3)
             Text(
                 text = history,
                 fontSize = 24.sp,
                 color = Color.Gray,
                 textAlign = TextAlign.End,
-                maxLines = 1
+                maxLines = 1,
+                fontWeight = FontWeight.Light
             )
-            // Valor Principal (Número atual)
+            // Main Display
             Text(
                 text = displayValue,
                 fontSize = 80.sp,
@@ -108,14 +109,14 @@ fun CalculatorScreen() {
             )
         }
 
-        // Teclado
+        // Keyboard
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Linha 1: AC, DEL, %, ÷
+            // Row 1: AC, DEL, %, ÷
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 IPhoneButton("AC", Modifier.weight(1f), lightGray, Color.Black) {
                     displayValue = "0"
@@ -125,15 +126,18 @@ fun CalculatorScreen() {
                     isNewNumber = true
                 }
                 IPhoneButton("DEL", Modifier.weight(1f), lightGray, Color.Black) {
-                    if (displayValue != "0" && !isNewNumber) {
-                        if (displayValue.length > 1) {
-                            displayValue = displayValue.dropLast(1)
-                            if (history.isNotEmpty()) history = history.dropLast(1)
-                        } else {
-                            displayValue = "0"
-                            if (history.isNotEmpty()) history = history.dropLast(1)
-                            isNewNumber = true
+                    if (history.isNotEmpty()) {
+                        val lastChar = history.last()
+                        if (lastChar == '+' || lastChar == '-' || lastChar == '×' || lastChar == '÷') {
+                            operator = null
                         }
+                        history = history.dropLast(1)
+                    }
+                    if (displayValue.length > 1) {
+                        displayValue = displayValue.dropLast(1)
+                    } else {
+                        displayValue = "0"
+                        isNewNumber = true
                     }
                 }
                 IPhoneButton("%", Modifier.weight(1f), lightGray, Color.Black) {
@@ -145,82 +149,65 @@ fun CalculatorScreen() {
                     if (operator != null) calculate()
                     operand1 = displayValue.replace(",", ".").toDoubleOrNull()
                     operator = "÷"
-                    history += " ÷ "
+                    history += "÷"
                     isNewNumber = true
                 }
             }
 
-            // Linha 2: 7, 8, 9, ×
+            // Row 2: 7, 8, 9, ×
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                IPhoneButton("7", Modifier.weight(1f), darkGray) {
-                    if (isNewNumber) { displayValue = "7"; isNewNumber = false } else { displayValue += "7" }
-                    history += "7"
-                }
-                IPhoneButton("8", Modifier.weight(1f), darkGray) {
-                    if (isNewNumber) { displayValue = "8"; isNewNumber = false } else { displayValue += "8" }
-                    history += "8"
-                }
-                IPhoneButton("9", Modifier.weight(1f), darkGray) {
-                    if (isNewNumber) { displayValue = "9"; isNewNumber = false } else { displayValue += "9" }
-                    history += "9"
+                listOf("7", "8", "9").forEach { num ->
+                    IPhoneButton(num, Modifier.weight(1f), darkGray) {
+                        if (isNewNumber) { displayValue = num; isNewNumber = false } else { displayValue += num }
+                        history += num
+                    }
                 }
                 IPhoneButton("×", Modifier.weight(1f), orange) {
                     if (operator != null) calculate()
                     operand1 = displayValue.replace(",", ".").toDoubleOrNull()
                     operator = "×"
-                    history += " × "
+                    history += "×"
                     isNewNumber = true
                 }
             }
 
-            // Linha 3: 4, 5, 6, -
+            // Row 3: 4, 5, 6, -
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                IPhoneButton("4", Modifier.weight(1f), darkGray) {
-                    if (isNewNumber) { displayValue = "4"; isNewNumber = false } else { displayValue += "4" }
-                    history += "4"
-                }
-                IPhoneButton("5", Modifier.weight(1f), darkGray) {
-                    if (isNewNumber) { displayValue = "5"; isNewNumber = false } else { displayValue += "5" }
-                    history += "5"
-                }
-                IPhoneButton("6", Modifier.weight(1f), darkGray) {
-                    if (isNewNumber) { displayValue = "6"; isNewNumber = false } else { displayValue += "6" }
-                    history += "6"
+                listOf("4", "5", "6").forEach { num ->
+                    IPhoneButton(num, Modifier.weight(1f), darkGray) {
+                        if (isNewNumber) { displayValue = num; isNewNumber = false } else { displayValue += num }
+                        history += num
+                    }
                 }
                 IPhoneButton("-", Modifier.weight(1f), orange) {
                     if (operator != null) calculate()
                     operand1 = displayValue.replace(",", ".").toDoubleOrNull()
                     operator = "-"
-                    history += " - "
+                    history += "-"
                     isNewNumber = true
                 }
             }
 
-            // Linha 4: 1, 2, 3, +
+            // Row 4: 1, 2, 3, +
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                IPhoneButton("1", Modifier.weight(1f), darkGray) {
-                    if (isNewNumber) { displayValue = "1"; isNewNumber = false } else { displayValue += "1" }
-                    history += "1"
-                }
-                IPhoneButton("2", Modifier.weight(1f), darkGray) {
-                    if (isNewNumber) { displayValue = "2"; isNewNumber = false } else { displayValue += "2" }
-                    history += "2"
-                }
-                IPhoneButton("3", Modifier.weight(1f), darkGray) {
-                    if (isNewNumber) { displayValue = "3"; isNewNumber = false } else { displayValue += "3" }
-                    history += "3"
+                listOf("1", "2", "3").forEach { num ->
+                    IPhoneButton(num, Modifier.weight(1f), darkGray) {
+                        if (isNewNumber) { displayValue = num; isNewNumber = false } else { displayValue += num }
+                        history += num
+                    }
                 }
                 IPhoneButton("+", Modifier.weight(1f), orange) {
                     if (operator != null) calculate()
                     operand1 = displayValue.replace(",", ".").toDoubleOrNull()
                     operator = "+"
-                    history += " + "
+                    history += "+"
                     isNewNumber = true
                 }
             }
 
-            // Linha 5: 0 (Duplo), , , =
+            // Row 5: 0, , , =
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Button 0 (Largo no iPhone)
                 Box(
                     modifier = Modifier
                         .weight(2.1f)
@@ -249,7 +236,7 @@ fun CalculatorScreen() {
                 }
                 IPhoneButton("=", Modifier.weight(1f), orange) {
                     calculate()
-                    history = displayValue // Mostra o resultado no histórico ao finalizar
+                    history = displayValue // Final history is the result
                     isNewNumber = true
                 }
             }
