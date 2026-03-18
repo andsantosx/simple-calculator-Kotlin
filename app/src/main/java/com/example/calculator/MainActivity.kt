@@ -3,13 +3,14 @@ package com.example.calculator
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,8 +19,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.calculator.presentation.CalculatorViewModel
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: CalculatorViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -28,7 +32,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color.Black
                 ) {
-                    CalculatorScreen()
+                    CalculatorScreen(viewModel)
                 }
             }
         }
@@ -41,37 +45,11 @@ fun IPhoneCalculatorTheme(content: @Composable () -> Unit) {
 }
 
 @Composable
-fun CalculatorScreen() {
-    var displayValue by remember { mutableStateOf("0") }
-    var history by remember { mutableStateOf("") }
-    var operand1 by remember { mutableStateOf<Double?>(null) }
-    var operator by remember { mutableStateOf<String?>(null) }
-    var isNewNumber by remember { mutableStateOf(true) }
-
-    // iPhone colors
+fun CalculatorScreen(viewModel: CalculatorViewModel) {
+    // Cores do iPhone
     val orange = Color(0xFFFF9F0A)
     val darkGray = Color(0xFF333333)
     val lightGray = Color(0xFFA5A5A5)
-
-    fun calculate() {
-        val op1 = operand1
-        val op2 = displayValue.replace(",", ".").toDoubleOrNull()
-        val currentOp = operator
-        if (op1 != null && op2 != null && currentOp != null) {
-            val result = when (currentOp) {
-                "+" -> op1 + op2
-                "-" -> op1 - op2
-                "×" -> op1 * op2
-                "÷" -> if (op2 != 0.0) op1 / op2 else Double.NaN
-                else -> op2
-            }
-            displayValue = if (result.isNaN()) "Erro"
-            else if (result % 1 == 0.0) result.toLong().toString().replace(".", ",")
-            else result.toString().replace(".", ",")
-            operand1 = null
-            operator = null
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -79,7 +57,7 @@ fun CalculatorScreen() {
             .background(Color.Black)
             .padding(bottom = 16.dp)
     ) {
-        // Display area with history
+        // Display Area
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -88,18 +66,16 @@ fun CalculatorScreen() {
             verticalArrangement = Arrangement.Bottom,
             horizontalAlignment = Alignment.End
         ) {
-            // History (Ex: 1+2+4+3)
             Text(
-                text = history,
+                text = viewModel.history,
                 fontSize = 24.sp,
                 color = Color.Gray,
                 textAlign = TextAlign.End,
                 maxLines = 1,
                 fontWeight = FontWeight.Light
             )
-            // Main Display
             Text(
-                text = displayValue,
+                text = viewModel.displayValue,
                 fontSize = 80.sp,
                 color = Color.White,
                 fontWeight = FontWeight.Light,
@@ -109,116 +85,54 @@ fun CalculatorScreen() {
             )
         }
 
-        // Keyboard
+        // Keyboard Area
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Row 1: AC, DEL, %, ÷
+            // Row 1
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                IPhoneButton("AC", Modifier.weight(1f), lightGray, Color.Black) {
-                    displayValue = "0"
-                    history = ""
-                    operand1 = null
-                    operator = null
-                    isNewNumber = true
-                }
-                IPhoneButton("DEL", Modifier.weight(1f), lightGray, Color.Black) {
-                    if (history.isNotEmpty()) {
-                        val lastChar = history.last()
-                        if (lastChar == '+' || lastChar == '-' || lastChar == '×' || lastChar == '÷') {
-                            operator = null
-                        }
-                        history = history.dropLast(1)
-                    }
-                    if (displayValue.length > 1) {
-                        displayValue = displayValue.dropLast(1)
-                    } else {
-                        displayValue = "0"
-                        isNewNumber = true
-                    }
-                }
-                IPhoneButton("%", Modifier.weight(1f), lightGray, Color.Black) {
-                    val current = displayValue.replace(",", ".").toDoubleOrNull() ?: 0.0
-                    displayValue = (current / 100).toString().replace(".", ",")
-                    history = displayValue
-                }
-                IPhoneButton("÷", Modifier.weight(1f), orange) {
-                    if (operator != null) calculate()
-                    operand1 = displayValue.replace(",", ".").toDoubleOrNull()
-                    operator = "÷"
-                    history += "÷"
-                    isNewNumber = true
-                }
+                IPhoneButton("AC", Modifier.weight(1f), lightGray, Color.Black) { viewModel.onClearClick() }
+                IPhoneButton("DEL", Modifier.weight(1f), lightGray, Color.Black) { viewModel.onDeleteClick() }
+                IPhoneButton("%", Modifier.weight(1f), lightGray, Color.Black) { viewModel.onPercentageClick() }
+                IPhoneButton("÷", Modifier.weight(1f), orange) { viewModel.onOperatorClick("÷") }
             }
 
-            // Row 2: 7, 8, 9, ×
+            // Row 2
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 listOf("7", "8", "9").forEach { num ->
-                    IPhoneButton(num, Modifier.weight(1f), darkGray) {
-                        if (isNewNumber) { displayValue = num; isNewNumber = false } else { displayValue += num }
-                        history += num
-                    }
+                    IPhoneButton(num, Modifier.weight(1f), darkGray) { viewModel.onNumberClick(num) }
                 }
-                IPhoneButton("×", Modifier.weight(1f), orange) {
-                    if (operator != null) calculate()
-                    operand1 = displayValue.replace(",", ".").toDoubleOrNull()
-                    operator = "×"
-                    history += "×"
-                    isNewNumber = true
-                }
+                IPhoneButton("×", Modifier.weight(1f), orange) { viewModel.onOperatorClick("×") }
             }
 
-            // Row 3: 4, 5, 6, -
+            // Row 3
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 listOf("4", "5", "6").forEach { num ->
-                    IPhoneButton(num, Modifier.weight(1f), darkGray) {
-                        if (isNewNumber) { displayValue = num; isNewNumber = false } else { displayValue += num }
-                        history += num
-                    }
+                    IPhoneButton(num, Modifier.weight(1f), darkGray) { viewModel.onNumberClick(num) }
                 }
-                IPhoneButton("-", Modifier.weight(1f), orange) {
-                    if (operator != null) calculate()
-                    operand1 = displayValue.replace(",", ".").toDoubleOrNull()
-                    operator = "-"
-                    history += "-"
-                    isNewNumber = true
-                }
+                IPhoneButton("-", Modifier.weight(1f), orange) { viewModel.onOperatorClick("-") }
             }
 
-            // Row 4: 1, 2, 3, +
+            // Row 4
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 listOf("1", "2", "3").forEach { num ->
-                    IPhoneButton(num, Modifier.weight(1f), darkGray) {
-                        if (isNewNumber) { displayValue = num; isNewNumber = false } else { displayValue += num }
-                        history += num
-                    }
+                    IPhoneButton(num, Modifier.weight(1f), darkGray) { viewModel.onNumberClick(num) }
                 }
-                IPhoneButton("+", Modifier.weight(1f), orange) {
-                    if (operator != null) calculate()
-                    operand1 = displayValue.replace(",", ".").toDoubleOrNull()
-                    operator = "+"
-                    history += "+"
-                    isNewNumber = true
-                }
+                IPhoneButton("+", Modifier.weight(1f), orange) { viewModel.onOperatorClick("+") }
             }
 
-            // Row 5: 0, , , =
+            // Row 5
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Button 0 (Largo no iPhone)
                 Box(
                     modifier = Modifier
                         .weight(2.1f)
                         .height(80.dp)
                         .clip(RoundedCornerShape(40.dp))
                         .background(darkGray)
-                        .clickable {
-                            if (isNewNumber) { displayValue = "0"; isNewNumber = false } 
-                            else if (displayValue != "0") { displayValue += "0" }
-                            history += "0"
-                        },
+                        .clickable { viewModel.onNumberClick("0") },
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
@@ -228,17 +142,8 @@ fun CalculatorScreen() {
                         modifier = Modifier.padding(start = 32.dp)
                     )
                 }
-                IPhoneButton(",", Modifier.weight(1f), darkGray) {
-                    if (!displayValue.contains(",")) { 
-                        displayValue += ","
-                        history += ","
-                    }
-                }
-                IPhoneButton("=", Modifier.weight(1f), orange) {
-                    calculate()
-                    history = displayValue // Final history is the result
-                    isNewNumber = true
-                }
+                IPhoneButton(",", Modifier.weight(1f), darkGray) { viewModel.onCommaClick() }
+                IPhoneButton("=", Modifier.weight(1f), orange) { viewModel.calculate() }
             }
         }
     }
